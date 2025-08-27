@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Value Scale - Building the Case for Vabysmo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation; /* Prevents double-tap zoom on mobile */
+        }
+        /* Style for the main container */
+        .scale-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 300px; /* Reduced height to move scale up */
+            margin-top: 0; /* Removed top margin */
+        }
+        /* Style for the pivot/base of the scale */
+        .scale-base {
+            width: 20px;
+            height: 100px;
+            background-color: #4b5563; /* gray-600 */
+            border-radius: 5px 5px 0 0;
+            position: relative;
+        }
+        /* Style for the top part of the pivot */
+        .scale-base::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            background-color: #6b7280; /* gray-500 */
+            border-radius: 50%;
+        }
+        /* Style for the scale's beam */
+        .scale-beam {
+            width: 500px;
+            height: 15px;
+            background-color: #6b7280; /* gray-500 */
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform-origin: center;
+            transform: translateX(-50%);
+            transition: transform 0.5s ease-in-out;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* Styles for the pans on each side of the scale */
+        .scale-pan {
+            width: 130px; /* Increased width to better fit blocks */
+            height: 100px; /* Increased height for stacking */
+            background-color: #d1d5db; /* gray-300 */
+            border: 3px solid #4b5563; /* gray-600 */
+            border-top: none;
+            border-radius: 0 0 65px 65px; /* Adjusted for new dimensions */
+            position: absolute;
+            bottom: -115px; /* Adjusted for new height */
+            display: flex;
+            flex-wrap: wrap-reverse; /* Key change: makes blocks wrap upwards */
+            justify-content: center;
+            align-content: flex-start; /* Key change: starts stacking from the bottom */
+            padding: 5px;
+            padding-bottom: 8px; /* Extra padding at the bottom */
+            gap: 5px;
+            transition: bottom 0.5s ease-in-out;
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.1);
+        }
+        .pan-left {
+            left: -65px; /* Re-centered based on new width */
+        }
+        .pan-right {
+            right: -65px; /* Re-centered based on new width */
+        }
+        /* Hanger lines for the pans */
+        .scale-pan::before, .scale-pan::after {
+            content: '';
+            position: absolute;
+            bottom: 95px; /* Adjusted for new pan height */
+            width: 2px;
+            height: 60px;
+            background-color: #4b5563; /* gray-600 */
+            transform-origin: bottom center;
+        }
+        .scale-pan::before {
+            left: 15px;
+            transform: rotate(-30deg);
+        }
+        .scale-pan::after {
+            right: 15px;
+            transform: rotate(30deg);
+        }
+        /* Style for the weight blocks */
+        .block {
+            /* Width and height are now set by JS */
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4 sm:p-6">
+
+    <div class="w-full max-w-5xl mx-auto">
+        
+        <h1 class="text-3xl font-bold text-center text-gray-800 my-4">Value Scale - Building the Case for Vabysmo</h1>
+
+        <div class="w-full max-w-xl mx-auto relative">
+            <!-- The visual representation of the scale -->
+            <div class="scale-container">
+                <div class="scale-base">
+                    <div id="scale-beam" class="scale-beam">
+                        <!-- Left Pan -->
+                        <div id="pan-left" class="scale-pan pan-left">
+                        </div>
+                        <!-- Right Pan -->
+                        <div id="pan-right" class="scale-pan pan-right">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Labels under pans -->
+        <div style="width: 500px;" class="mx-auto relative text-center pt-16 h-12">
+            <p class="absolute left-0 -translate-x-1/2 w-40 text-gray-700 font-semibold text-sm leading-tight">Aflibercept 2mg biosimilar</p>
+            <p class="absolute right-0 translate-x-1/2 w-40 text-gray-700 font-semibold text-sm leading-tight">Vabysmo</p>
+        </div>
+
+
+        <!-- Controls for adding blocks -->
+        <div class="mt-16 p-6 bg-white rounded-xl shadow-lg">
+            <h2 class="text-xl font-semibold text-center mb-4 text-gray-700">Add Weights</h2>
+            <div class="flex flex-col md:flex-row justify-center items-start gap-4">
+                <!-- Buttons to add blocks to the left side -->
+                <div class="flex flex-col items-center gap-2 p-4 border rounded-lg w-full md:w-auto">
+                    <h3 class="font-medium text-gray-600 mb-2">Cheapest First</h3>
+                    <p class="text-sm text-gray-500 mb-2">Biosimilar</p>
+                    <div class="flex justify-center gap-2">
+                        <button onclick="addBlock('left', 9, 'bg-red-500', 'Drug Cost Savings', 'xlarge')" class="px-6 py-3 text-xl bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition transform hover:scale-105">XL</button>
+                    </div>
+                </div>
+                <!-- Buttons to add blocks to the right side -->
+                <div class="flex flex-col items-center gap-2 p-4 border rounded-lg w-full md:w-auto">
+                    <h3 class="font-medium text-gray-600 mb-2">Vabysmo Value Story</h3>
+                    <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+                        <!-- Clinicians -->
+                         <div class="flex flex-col items-center">
+                             <p class="text-sm text-gray-500 mb-2">Clinicians</p>
+                             <div class="flex justify-center gap-2">
+                                <button onclick="addBlock('right', 1, 'bg-purple-500', 'C', 'small')" class="px-3 py-2 text-sm bg-purple-500 text-white font-bold rounded-lg shadow-md hover:bg-purple-600 transition transform hover:scale-105">S</button>
+                                <button onclick="addBlock('right', 2, 'bg-purple-500', 'C', 'medium')" class="px-4 py-2 bg-purple-500 text-white font-bold rounded-lg shadow-md hover:bg-purple-600 transition transform hover:scale-105">M</button>
+                                <button onclick="addBlock('right', 3, 'bg-purple-500', 'C', 'large')" class="px-5 py-2 text-lg bg-purple-500 text-white font-bold rounded-lg shadow-md hover:bg-purple-600 transition transform hover:scale-105">L</button>
+                            </div>
+                        </div>
+                        <!-- Service Managers -->
+                         <div class="flex flex-col items-center">
+                             <p class="text-sm text-gray-500 mb-2">Service Managers</p>
+                             <div class="flex justify-center gap-2">
+                                <button onclick="addBlock('right', 1, 'bg-blue-600', 'SM', 'small')" class="px-3 py-2 text-sm bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">S</button>
+                                <button onclick="addBlock('right', 2, 'bg-blue-600', 'SM', 'medium')" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">M</button>
+                                <button onclick="addBlock('right', 3, 'bg-blue-600', 'SM', 'large')" class="px-5 py-2 text-lg bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">L</button>
+                            </div>
+                        </div>
+                        <!-- Patients -->
+                         <div class="flex flex-col items-center">
+                             <p class="text-sm text-gray-500 mb-2">Patients</p>
+                             <div class="flex justify-center gap-2">
+                                <button onclick="addBlock('right', 1, 'bg-lime-600', 'Pt', 'small')" class="px-3 py-2 text-sm bg-lime-600 text-white font-bold rounded-lg shadow-md hover:bg-lime-700 transition transform hover:scale-105">S</button>
+                                <button onclick="addBlock('right', 2, 'bg-lime-600', 'Pt', 'medium')" class="px-4 py-2 bg-lime-600 text-white font-bold rounded-lg shadow-md hover:bg-lime-700 transition transform hover:scale-105">M</button>
+                                <button onclick="addBlock('right', 3, 'bg-lime-600', 'Pt', 'large')" class="px-5 py-2 text-lg bg-lime-600 text-white font-bold rounded-lg shadow-md hover:bg-lime-700 transition transform hover:scale-105">L</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Reset Button -->
+            <div class="text-center mt-6">
+                <button onclick="resetScale()" class="px-8 py-3 bg-gray-700 text-white font-semibold rounded-lg shadow-md hover:bg-gray-800 transition">Reset Scale</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const scaleBeam = document.getElementById('scale-beam');
+        const panLeft = document.getElementById('pan-left');
+        const panRight = document.getElementById('pan-right');
+        
+        // Initialize weights for both sides
+        let leftWeight = 0;
+        let rightWeight = 0;
+
+        /**
+         * Adds a block of a given weight and size to the specified side of the scale.
+         * @param {string} side - The side to add the block to ('left' or 'right').
+         * @param {number} weight - The weight of the block to add.
+         * @param {string} colorClass - The Tailwind CSS class for the block's color.
+         * @param {string} text - The base text to display on the block.
+         * @param {string} size - The size of the block ('small', 'medium', 'large', or 'xlarge').
+         */
+        function addBlock(side, weight, colorClass, text, size) {
+            // Create a new block element
+            const block = document.createElement('div');
+            block.className = `block ${colorClass}`;
+            block.dataset.weight = weight; // Store weight in a data attribute
+
+            // Apply styles based on the selected size
+            switch (size) {
+                case 'small':
+                    block.style.width = '20px';
+                    block.style.height = '20px';
+                    block.style.fontSize = '0.7rem';
+                    block.textContent = text;
+                    break;
+                case 'large':
+                    block.style.width = '35px';
+                    block.style.height = '35px';
+                    block.style.fontSize = '1rem';
+                    block.textContent = text;
+                    break;
+                case 'xlarge':
+                    block.style.width = '60px';
+                    block.style.height = '60px';
+                    // Specific styling for the "Drug Cost Savings" block
+                    if (text === 'Drug Cost Savings') {
+                        block.innerHTML = 'Drug<br>Cost<br>Savings';
+                        block.style.fontSize = '0.75rem';
+                        block.style.lineHeight = '1.1';
+                    } else {
+                        block.textContent = text;
+                        block.style.fontSize = '1.5rem';
+                    }
+                    break;
+                case 'medium':
+                default:
+                    block.style.width = '28px';
+                    block.style.height = '28px';
+                    block.style.fontSize = '0.85rem';
+                    block.textContent = text;
+                    break;
+            }
+
+            // Add click event to remove the block
+            block.onclick = () => removeBlock(block, side);
+
+            // Add the block to the correct pan and update the weight
+            if (side === 'left') {
+                panLeft.appendChild(block);
+                leftWeight += weight;
+            } else {
+                panRight.appendChild(block);
+                rightWeight += weight;
+            }
+
+            // Update the scale's balance
+            updateScale();
+        }
+        
+        /**
+         * Removes a block from a pan and updates the scale.
+         * @param {HTMLElement} block - The block element to remove.
+         * @param {string} side - The side the block is on ('left' or 'right').
+         */
+        function removeBlock(block, side) {
+            // Use parseFloat to handle decimal values
+            const weight = parseFloat(block.dataset.weight);
+            
+            if (side === 'left') {
+                leftWeight -= weight;
+            } else {
+                rightWeight -= weight;
+            }
+            
+            block.remove();
+            updateScale();
+        }
+
+        /**
+         * Updates the visual representation of the scale based on the current weights.
+         */
+        function updateScale() {
+            const difference = rightWeight - leftWeight;
+
+            // Define the maximum angle and a reference weight for scaling the tilt.
+            const maxWeight = 15; // Adjusted for new 1, 2, 3 weight system
+            const maxAngle = 25; 
+            
+            // Calculate the angle based on the weight difference.
+            let angle = (difference / maxWeight) * maxAngle;
+
+            // Clamp the angle to the max/min values to prevent excessive tipping.
+            angle = Math.max(-maxAngle, Math.min(maxAngle, angle));
+
+            // Apply the rotation to the scale beam.
+            scaleBeam.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+            
+            // Calculate how much the pans should move vertically based on the angle.
+            const panDropAmount = angle * 2.5;
+            
+            // Adjust pan positions based on the new initial bottom value.
+            panLeft.style.bottom = `${-115 - panDropAmount}px`;
+            panRight.style.bottom = `${-115 + panDropAmount}px`;
+        }
+
+        /**
+         * Resets the scale to its initial state, removing all blocks.
+         */
+        function resetScale() {
+            // Reset weights
+            leftWeight = 0;
+            rightWeight = 0;
+
+            // Remove all block elements from the pans
+            panLeft.innerHTML = '';
+            panRight.innerHTML = '';
+
+            // Update the scale to return to a balanced state
+            updateScale();
+        }
+        
+        // Initial call to set the scale correctly on page load
+        resetScale();
+    </script>
+</body>
+</html>
